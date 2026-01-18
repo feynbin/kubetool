@@ -1,0 +1,100 @@
+name: workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 设置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.6'
+
+      - name: verity code
+        run: |
+          echo "项目结构:"
+          ls -la
+          echo -e "\nGo 版本:"
+          go version
+          echo -e "\n代码验证:"
+          go build -o kubetool-local .
+          ./kubetool-local
+
+      - name: 构建 Docker 镜像
+        run: |
+          echo "构建 Docker 镜像..."
+          docker build -t kubetool:${{ github.sha }} .
+          docker tag kubetool:${{ github.sha }} kubetool:latest
+          
+          echo "镜像信息:"
+          docker images | grep kubetool
+
+      - name: 运行容器测试
+        run: |
+          echo "运行容器进行测试..."
+          
+          # 创建临时目录用于挂载
+          mkdir -p ./test-output
+          
+          # 运行容器
+          docker run --rm \
+            --name kubetool-test \
+            -v $(pwd)/test-output:/data \
+            kubetool:latest
+          
+          echo -e "\n检查生成的产物文件:"
+          ls -la ./test-output/
+          echo -e "\n文件内容:"
+          cat ./test-output/kubetool.txt || echo "文件未生成"
+
+      - name: 保存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubetool-artifacts
+          path: |
+            test-output/
+          retention-days: 7
+
+      - name: 推送到 GitHub Packages (可选)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "推送镜像到 GitHub Packages..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # 标记镜像
+          IMAGE_NAME=ghcr.io/${{ github.repository }}/kubetool:${{ github.sha }}
+          docker tag kubetool:${{ github.sha }} $IMAGE_NAME
+          docker tag kubetool:${{ github.sha }} ghcr.io/${{ github.repository }}/kubetool:latest
+          
+          # 推送镜像
+          docker push $IMAGE_NAME
+          docker push ghcr.io/${{ github.repository }}/kubetool:latest
+          
+          echo "镜像推送完成: $IMAGE_NAME"
+
+      - name: 生成构建报告
+        run: |
+          echo "=== 构建报告 ==="
+          echo "仓库: ${{ github.repository }}"
+          echo "提交: ${{ github.sha }}"
+          echo "触发者: ${{ github.actor }}"
+          echo "时间: $(date)"
+          echo "状态: ✅ 构建成功"
+          
+          if [ -f "./test-output/kubetool.txt" ]; then
+            echo "产物验证: ✅ kubetool.txt 文件已生成"
+            echo "文件内容:"
+            cat ./test-output/kubetool.txt
+          else
+            echo "产物验证: ❌ 文件未生成"
+          fi
