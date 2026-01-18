@@ -69,7 +69,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo "推送镜像到 GitHub Packages..."
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.CI_TEST}}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
           # 标记镜像
           IMAGE_NAME=ghcr.io/${{ github.repository }}/${{ github.sha }}
