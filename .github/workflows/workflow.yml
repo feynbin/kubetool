@@ -76,11 +76,11 @@ jobs:
           # 标记镜像
           IMAGE_NAME=ghcr.io/${{ github.repository }}/${{ github.sha }}
           docker tag kubetool:${{ github.sha }} $IMAGE_NAME
-          docker tag kubetool:${{ github.sha }} ghcr.io/${{ github.repository }}/kubetool:latest
+          docker tag kubetool:${{ github.sha }} ghcr.io/${{ github.repository }}:latest
           
           # 推送镜像
           docker push $IMAGE_NAME
-          docker push ghcr.io/${{ github.repository }}/kubetool:latest
+          docker push ghcr.io/${{ github.repository }}:latest
           
           echo "镜像推送完成: $IMAGE_NAME"
 
