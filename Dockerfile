@@ -8,6 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/kubetool .
 
 # 运行阶段
 FROM alpine:latest
+LABEL org.opencontainers.image.source="https://github.com/feynbin/kubetool"
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 # 从构建阶段复制二进制文件
