@@ -1,6 +1,5 @@
-CC=GCC
 APP_NAME := kubetool
-IMAGE_NAME := $(APP_NAME):latest
+IMAGE_NAME := $(APP_NAME):1.0
 CONTAINER_NAME := $(APP_NAME)-runner
 LOCAL_PROXY := http://host.docker.internal:8081/repository/go/
 
@@ -20,13 +19,14 @@ build:
 	@echo "构建镜像中...(使用代理: $(LOCAL_PROXY))"
 	docker build \
 		--build-arg GOPROXY="$(LOCAL_PROXY),https://goproxy.cn,direct" \
+		--progress=plain \
 		-t $(IMAGE_NAME) .
 	@echo "镜像构建完成: $(IMAGE_NAME)"
 
 # 运行容器
 run:
 	@echo "启动容器..."
-	docker run -d \
+	docker run --rm \
 		--name $(CONTAINER_NAME) \
 		-v "$$(pwd)/output:/data" \
 		$(IMAGE_NAME)
@@ -66,4 +66,4 @@ env-check:
 	@echo "2. make版本: $$(make --version | head -1)"
 	@echo "3. docker版本: $$(docker --version)"
 	@echo "4. 当前目录: $$(pwd)"
-	@echo "5. 输出目录是否存在: $$(if [ -d "output" ]; then echo "是"; else echo "否"; fi)"
+	@echo "5. 输出目录是否存在: $$(if [ -d "output" ]; then echo "是";  echo "否"; fi)"
